@@ -1,0 +1,20 @@
+default model: opus
+lookback days: 90
+dedup days: 7
+
+project repos:
+- https://github.com/yaml/go-yaml
+- https://github.com/yaml/pyyaml
+- https://github.com/yaml/libyaml
+- repo: https://github.com/mikefarah/yq
+  skip: items unrelated to go-yaml
+- https://github.com/yaml/yamlscript
+- https://github.com/yaml/yamlstar
+- https://github.com/yaml/www.yaml.org
+- https://github.com/gloathub/gloat
+- https://github.com/gloathub/glojure
+- https://github.com/gloathub/gojava
+- https://github.com/exercism/yamlscript
+- https://github.com/exercism/yamlscript-test-runner
+- https://github.com/makeplus/makes
+- https://github.com/ingydotnet/git-hub

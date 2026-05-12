@@ -1,0 +1,25 @@
+name: Ketchup
+
+on:
+  schedule:
+  - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  ketchup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure git identity
+      run: |
+        git config user.name "ketchup-bot"
+        git config user.email "ketchup-bot@users.noreply.github.com"
+
+    - name: Run ketchup
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GITHUB_TOKEN: ${{ secrets.KETCHUP_TOKEN }}
+      run: make ketchup

@@ -1,0 +1,29 @@
+# pkio sandbox config for the ketchup project.
+#
+# Read by `pkio make ketchup` (and any other `pkio <cmd>` run from
+# this repo). GitHub Actions runs plain `make ketchup`, no pkio,
+# so this file is irrelevant in CI.
+
+cmd:
+  make:
+    read-write:
+    # Claude OAuth credentials live here when CLAUDE_CONFIG_DIR is
+    # set by pkio. Granting r+w lets the headless ketchup run use
+    # the Max plan instead of falling back to API billing.
+    - ~/.config/pkio/cache/claude
+    # Claude's per-user scratch dir (IPC, paste-image, etc).
+    - /tmp/claude-$(shell id -u)
+    # Makes cache (used if any included .mk needs ~/.cache/makes).
+    - ~/.cache/makes
+    read-only:
+    # Mirror what pkio/etc/cmd/claude/config.yaml grants for
+    # interactive claude — these are paths the claude binary
+    # touches at startup (libc on /proc, helpers in /usr/bin,
+    # gh auth state, git config, libstdbuf in /usr/libexec).
+    - /proc
+    - /usr/bin
+    - /usr/local/bin
+    - /usr/libexec
+    - /usr/include
+    - ~/.config/gh
+    - /etc/gitconfig
