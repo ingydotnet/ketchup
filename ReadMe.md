@@ -116,6 +116,45 @@ Required secrets on the repo:
 You can trigger the workflow manually from the Actions tab via
 `workflow_dispatch`, or wait for the next scheduled run.
 
+## Reading the report
+
+Each daily report is a markdown file with one section per
+project that had activity, plus a `## No updates` section
+listing the URLs of quiet projects.
+Every active item is a GitHub-style task list checkbox, so
+the report doubles as an interactive to-do list when viewed
+in the GitHub web UI.
+
+**Ticking an item** marks it as handled.
+Once an item is ticked in its most recent appearance in any
+prior report, future ketchup runs treat it as suppressed and
+do not surface it again, even if upstream activity continues.
+If you change your mind, un-tick the box in the latest report
+that still mentions the item; the next run picks the change
+up and may re-include the item.
+
+**Appearance counter.**
+Each item shows `(updated: ISO, appearance #N)` on its
+metadata line, where N is how many reports have contained
+this item so far.
+A first-time item is `#1`; an item that has been nagging for
+weeks accumulates higher numbers.
+
+**Re-surfacing quiet-but-open items.**
+If you neither tick nor close an item, ketchup brings it back
+into a future report once its last appearance is older than
+`dedup days`.
+The appearance counter increments each time, so persistent
+items become visually loud over time.
+Tick the box (or have the underlying issue closed upstream)
+to stop the cycle.
+
+**Navigation.**
+Every report has `← prev | next →` links at the top and at
+the bottom pointing to neighboring report files.
+The most recent report's `next →` placeholder is empty until
+the following day's run fills it in.
+
 ## Repo layout
 
 - `ketchup.yaml`: the config you edit.

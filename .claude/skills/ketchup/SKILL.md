@@ -56,10 +56,11 @@ Codeberg, Sourcehut, etc.) can be supported.
 GitHub is the well-tested path today; see Step 3 for how to
 handle other hosts.
 
-## Step 2: Read prior reports for dedup and known-set
+## Step 2: Read prior reports
 
-List the files matching `report/*.md`.
-This step produces two pieces of state.
+List the files matching `report/*.md`, sorted by filename
+(which is YYYYMMDD, so this is chronological).
+This step builds five pieces of state from those files.
 
 **Known-set.**
 Scan every file in `report/*.md` (no date filter) and collect
@@ -78,10 +79,37 @@ reported, keyed by `{repo}#{number}` together with their
 This map is passed to each subagent in Step 3 so it can skip
 items that have not changed.
 
-If `report/` does not exist yet, both the known-set and the
-dedup map are empty.
+**Suppress-set.**
+Walk `report/*.md` from newest to oldest.
+For each item URL, record the tick state of its most recent
+occurrence: a line starting with `- [x]` means the user has
+marked the item as done / ignored, so the URL goes into the
+suppress-set; a line starting with `- [ ]` means it is not
+suppressed.
+Only the latest mention wins, so the user can un-suppress an
+item by un-ticking the checkbox in the most recent prior
+report that mentions it.
+
+**Appearance count map.**
+For each item URL, count how many distinct `report/*.md` files
+contain it.
+The new report being written will add one more, so the
+appearance number shown for an item in today's report is
+`prior count + 1`.
+
+**Outstanding map.**
+For each URL that has ever been reported and is NOT in the
+suppress-set, record the date (from the report filename) of
+its most recent appearance.
+Restrict to URLs whose project is still listed in
+`ketchup.yaml`; outstanding entries for removed projects are
+dropped.
+This map drives the re-surface logic in Step 3.
+
+If `report/` does not exist yet, all five structures are
+empty.
 That is fine on a first run; every project will be treated as
-new.
+new and no items will be suppressed or re-surfaced.
 
 ## Step 3: Fetch activity per repo (in parallel)
 
@@ -108,6 +136,16 @@ Brief each subagent with:
 - The list of items already reported in the dedup window, with
   their last seen `updated_at`, so unchanged items can be
   skipped.
+- The suppress-set URLs that belong to this project.
+  Any candidate item whose URL appears in this set is a hard
+  drop: the subagent must not return it under any
+  circumstance.
+- The re-surface candidate URLs for this project: outstanding
+  URLs whose last appearance was more than `dedup days` ago.
+  For each, the subagent fetches the item's current state via
+  the forge API and includes it in its return list if it is
+  still open.
+  Closed items are dropped silently.
 - The model to use (the entry's `model` if set, otherwise
   `default model`).
 
@@ -145,6 +183,10 @@ context note.
 A subagent that finds no qualifying items returns an empty
 list; that signals the project belongs in the No updates
 section in Step 4.
+Re-surface items returned from the candidate list look just
+like fresh items in the return shape; the parent agent
+distinguishes them by URL membership in the outstanding map
+when formatting the appearance counter in Step 5.
 
 ## Step 4: Aggregate, partition, and order
 
@@ -189,16 +231,20 @@ Use this structure:
 ```markdown
 # Ketchup Report - YYYY-MM-DD
 
+[← YYYY-MM-DD](20260511.md) | next →
+
 ## {project}
 
 - [ ] [#NNN Title](https://example.com/owner/repo/issues/NNN)
   One short paragraph explaining what this is and why it matters.
-  (updated: YYYY-MM-DDTHH:MM:SSZ)
+  (updated: YYYY-MM-DDTHH:MM:SSZ, appearance #N)
 
 ## No updates
 
 - https://example.com/owner/project-a
 - https://example.com/owner/project-b
+
+[← YYYY-MM-DD](20260511.md) | next →
 ```
 
 Rules:
@@ -208,8 +254,10 @@ Rules:
 - Every item entry must have at least one URL pointing to the
   item.
 - Each item gets a short summary explaining the context.
-- Always include `(updated: <ISO>)` so future runs can dedup
-  precisely.
+- Always include `(updated: <ISO>, appearance #N)`, where N is
+  `prior appearance count + 1`.
+  The `updated` ISO lets future runs dedup precisely, and N
+  shows the reader how often this item has surfaced before.
 - For the section heading, use the project's short name (last
   path segment of the URL) rather than the full URL.
 - The `## No updates` section is always present, even if empty.
@@ -219,24 +267,70 @@ Rules:
   Future runs grep these URLs to build the known-set, so the
   format must stay stable.
 
-## Step 6: Dedup rules
+**Navigation links.**
+A single line just below the H1 and again just above EOF
+carries previous / next pointers:
 
-- Skip an item already reported within `dedup days` if its
-  `updated_at` has not changed.
-- Re-include an item whose `updated_at` has advanced since the
-  last report.
-- A project with no qualifying items (everything filtered or
-  deduped out) goes into the No updates section instead of
-  getting its own `## {project}` section.
+- `[← YYYY-MM-DD](20260511.md) | next →` when a prior report
+  exists.
+  Use the prior report's date as the link label.
+- `← prev | next →` (both halves placeholder) when no prior
+  report exists (first-ever run).
+- The `next →` half is rendered as the literal text
+  `next →` (no link target) on the newly written report.
+  The next day's run back-edits it to a real link.
+
+**Back-edit the prior report.**
+After writing today's report, if any prior report exists in
+`report/`, edit that file (the chronologically previous one) to
+turn its `next →` placeholder into a real link to today's
+filename: `[YYYY-MM-DD →](20260512.md)`.
+Update both the top and the bottom occurrences.
+If the prior report predates this feature and has no nav line,
+insert one in both positions; leave its `← prev` half
+pointing to whatever came before it, or use a `← prev`
+placeholder if it was the first report.
+
+## Step 6: Filter and dedup rules
+
+Applied in this order:
+
+1. **Suppress-set check.**
+   Drop any candidate item whose URL is in the suppress-set
+   (i.e. its most recent occurrence in any prior report was
+   `- [x]`).
+   This filter wins over everything else and applies to fresh
+   candidates and re-surface candidates alike.
+2. **Re-surface check.**
+   An outstanding URL (not suppressed) whose last appearance
+   was more than `dedup days` ago is re-fetched.
+   If still open, it is included in the new report as an item;
+   its appearance counter is `prior count + 1`.
+   If closed upstream, it is dropped silently.
+3. **Updated-at dedup.**
+   Skip a fresh item already reported within `dedup days` if
+   its `updated_at` has not changed.
+   Re-include a fresh item whose `updated_at` has advanced
+   since the last report.
+
+A project with no qualifying items (everything suppressed,
+filtered, or deduped out) goes into the No updates section
+instead of getting its own `## {project}` section.
 
 ## Step 7: Commit and (conditionally) push
 
-Once the report file has been written:
+Once the report file has been written and the prior report (if
+any) has been back-edited for navigation:
 
 ```sh
-git add report/<YYYYMMDD>.md
+git add report/<YYYYMMDD>.md report/<prior-YYYYMMDD>.md
 git commit -m "Ketchup report YYYY-MM-DD"
 ```
+
+The prior report path is only added if a back-edit actually
+happened.
+On a first-ever run with no prior report, stage today's file
+alone.
 
 Then check the environment.
 If `$GITHUB_ACTIONS` is non-empty (i.e. running inside a GitHub
@@ -254,5 +348,15 @@ Before finishing, confirm:
 - Every project in `ketchup.yaml` appears in the report exactly
   once, either as a `## {project}` section or as a bullet under
   `## No updates`.
-- A commit was created with the expected message.
+- Every item entry's metadata line includes
+  `(updated: ISO, appearance #N)`, and N equals the number of
+  prior `report/*.md` files containing that URL plus one.
+- No URL in the suppress-set appears as an item in the new
+  report.
+- The new report has a nav line (`[← prev](...) | next →`) just
+  below the H1 and just above EOF.
+- If a prior report exists, its `next →` half now points to
+  today's filename in both the top and bottom positions.
+- A commit was created with the expected message, staging both
+  the new report and (if back-edited) the prior report.
 - The push happened only when `$GITHUB_ACTIONS` was set.
