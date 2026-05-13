@@ -108,10 +108,21 @@ back to the repo.
 
 Required secrets on the repo:
 
-- `ANTHROPIC_API_KEY`: Anthropic API key used by Claude Code.
+- `CLAUDE_CREDENTIALS`: the JSON contents of your local Claude
+  credentials file (the one Claude Code maintains under
+  `$CLAUDE_CONFIG_DIR`, defaulting to `~/.claude/.credentials.json`).
+  The Action writes this JSON to the runner each time and points
+  Claude at it, so the run authenticates against your Claude Max
+  subscription instead of metered API usage.
 - `KETCHUP_TOKEN`: a fine-grained GitHub PAT with read access to
   every repo listed in `ketchup.yaml` and write access to the
   `contents` of this repo (so the workflow can push the report).
+
+`make publish-secrets` pushes both `CLAUDE_CREDENTIALS` and
+`KETCHUP_TOKEN` from local files in one shot.
+If a report ever appears with a top-of-file banner about
+rotated credentials, log in to Claude locally and re-run
+`make publish-secrets` to refresh the stored secret.
 
 You can trigger the workflow manually from the Actions tab via
 `workflow_dispatch`, or wait for the next scheduled run.

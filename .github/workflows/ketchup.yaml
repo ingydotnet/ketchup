@@ -18,8 +18,33 @@ jobs:
         git config user.name "ketchup-bot"
         git config user.email "ketchup-bot@users.noreply.github.com"
 
+    - name: Write Claude credentials
+      env:
+        CLAUDE_CREDS: ${{ secrets.CLAUDE_CREDENTIALS }}
+      run: |
+        umask 077
+        mkdir -p "$RUNNER_TEMP/claude"
+        printf '%s' "$CLAUDE_CREDS" > "$RUNNER_TEMP/claude/.credentials.json"
+
     - name: Run ketchup
       env:
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         GITHUB_TOKEN: ${{ secrets.KETCHUP_TOKEN }}
-      run: make ketchup
+        CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude
+      run: |
+        creds="$RUNNER_TEMP/claude/.credentials.json"
+        before=$(sha256sum "$creds" | cut -d' ' -f1)
+        make ketchup
+        after=$(sha256sum "$creds" | cut -d' ' -f1)
+        if [[ $before != $after ]]; then
+          report=$(ls -1 report/*.md | tail -1)
+          tmp=$(mktemp)
+          {
+            echo '*Claude OAuth credentials rotated during this run. Log in to Claude locally and run `make publish-secrets` to refresh the stored secret.*'
+            echo
+            cat "$report"
+          } > "$tmp"
+          mv "$tmp" "$report"
+          git add "$report"
+          git commit --amend --no-edit
+          git push --force-with-lease
+        fi
