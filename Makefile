@@ -37,4 +37,7 @@ publish-secrets: $(GH) $(CLAUDE-CREDS-FILE) $(GH-TOKEN-FILE)
 	gh secret set CLAUDE_CREDENTIALS -R ingydotnet/ketchup < $(CLAUDE-CREDS-FILE)
 	gh secret set KETCHUP_TOKEN -R ingydotnet/ketchup < $(GH-TOKEN-FILE)
 
+run-gha: $(GH) publish-secrets
+	gh workflow run ketchup.yaml -R ingydotnet/ketchup
+
 claude: claude-nono

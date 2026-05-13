@@ -4,6 +4,13 @@
 # this repo). GitHub Actions runs plain `make ketchup`, no pkio,
 # so this file is irrelevant in CI.
 
+# Point Claude (and anything reading $CLAUDE_CONFIG_DIR, like our
+# Makefile's CLAUDE-CREDS-FILE) at the pkio-managed credentials
+# dir for every `pkio <cmd>` run from this repo. pkio's own claude
+# command sets this too; setting it here covers `pkio make` etc.
+env:
+  CLAUDE_CONFIG_DIR: ~/.config/pkio/cache/claude
+
 cmd:
   make:
     read-write:

@@ -1,4 +1,4 @@
-default model: opus
+default model: sonnet # opus
 lookback days: 90
 dedup days: 7
 
