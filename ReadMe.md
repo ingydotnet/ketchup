@@ -127,6 +127,91 @@ rotated credentials, log in to Claude locally and re-run
 You can trigger the workflow manually from the Actions tab via
 `workflow_dispatch`, or wait for the next scheduled run.
 
+## Daily credential refresh via a relay host
+
+Claude OAuth credentials rotate on every refresh, including
+the rotation triggered by the GHA run itself.
+That means yesterday's GHA-stored creds are usually invalid
+by the time the next scheduled run fires, unless something
+pushes a fresh copy in the meantime.
+
+The repo ships an optional two-step relay setup that
+removes the need to remember `make publish-secrets`:
+
+- Your laptop rsyncs the local creds file to an always-on
+  host you control every time the file changes (each Claude
+  token refresh triggers it).
+- That host publishes the freshest copy to the
+  `CLAUDE_CREDENTIALS` GHA secret a couple of hours before
+  the workflow cron fires.
+
+The relay host is whatever you already have: a small VPS,
+a home server, a Raspberry Pi, a Mac Mini that lives on
+your desk.
+Requirements: reachable from the laptop over SSH, has
+`rsync` and `gh` installed, can run cron.
+
+Throughout the rest of this section, `RELAY` is the SSH
+alias (from your `~/.ssh/config`) for that host.
+
+### One-time laptop setup
+
+Passwordless SSH to your relay must already work
+(`ssh $RELAY hostname` succeeds without prompts; see
+`ssh-copy-id` or a dedicated key referenced via
+`IdentityFile`).
+Then:
+
+```sh
+make install-rsync RELAY=<your-ssh-alias>
+```
+
+This expands `etc/systemd/ketchup-rsync.{path,service}.in`
+into `~/.config/systemd/user/` with the right credentials
+path and relay host substituted in, reloads systemd, and
+enables the path unit.
+
+The path unit watches your local credentials file (whatever
+`$CLAUDE_CONFIG_DIR/.credentials.json` resolves to at
+install time) and triggers an rsync to
+`<RELAY>:.ketchup/creds.json` on every change.
+
+### One-time relay setup
+
+On the relay host:
+
+```sh
+# Install dependencies (use your package manager;
+# brew/apt/dnf/pkg all have packages named gh and rsync).
+
+gh auth login   # fine-grained PAT for the ketchup repo:
+                # Contents: read-only
+                # Secrets: read/write
+
+mkdir -p ~/.ketchup
+# Copy etc/relay/ketchup-publish.sh from this repo to
+# ~/.ketchup/ketchup-publish.sh, then make it executable.
+chmod +x ~/.ketchup/ketchup-publish.sh
+
+crontab -e
+# Add a daily push, scheduled at least an hour before your
+# GHA cron fires:
+# 0 1 * * * KETCHUP_REPO=<owner>/<repo> \
+#     $HOME/.ketchup/ketchup-publish.sh \
+#     >> $HOME/.ketchup/publish.log 2>&1
+```
+
+`KETCHUP_TOKEN` does not rotate, so it is pushed once from
+the laptop with `make publish-secrets` and forgotten.
+
+### Day-to-day
+
+Nothing.
+Use Claude on the laptop as usual.
+The path unit rsyncs creds on every refresh, the relay
+publishes them to GitHub nightly, and the GHA wakes up to
+fresh secrets each morning.
+
 ## Reading the report
 
 Each daily report is a markdown file with one section per
@@ -174,12 +259,16 @@ the following day's run fills it in.
 - `.github/workflows/ketchup.yaml`: the scheduled GitHub Action.
 - `Makefile`: uses [Makes](https://github.com/makeplus/makes) to
   install dependencies and run the pipeline.
+- `etc/systemd/`: systemd user-unit templates for the
+  laptop side of the optional credentials relay.
+- `etc/relay/`: scripts deployed by hand to the always-on
+  relay host for the credentials relay.
 - `report/`: where the daily report files live.
   Created on first run.
 
 ## Copyright and License
 
-Copyright (c) 2026 Ingy döt Net.
+Copyright 2026 - Ingy döt Net.
 
 This project is released under the MIT License.
 See the [License](License) file for the full text.

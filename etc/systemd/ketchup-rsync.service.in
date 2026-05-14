@@ -1,0 +1,11 @@
+[Unit]
+Description=Rsync Claude creds to ketchup relay
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rsync -e ssh --chmod=600 @CREDS_FILE@ @RELAY_HOST@:.ketchup/creds.json
+Restart=on-failure
+RestartSec=60
+StartLimitBurst=10

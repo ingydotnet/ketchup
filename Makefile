@@ -15,6 +15,7 @@ include $M/shell.mk
 GH-TOKEN-FILE := $(HOME)/.github-tokens/ketchup
 CLAUDE-CREDS-FILE := $(or $(CLAUDE_CONFIG_DIR),$(HOME)/.claude)/.credentials.json
 KETCHUP-MODEL = $(shell $(YS) -Y ketchup.yaml -e '.get("default model")')
+SYSTEMD-USER-DIR := $(HOME)/.config/systemd/user
 
 KETCHUP-DEPS := $(CLAUDE-READY) $(JQ) $(YS)
 
@@ -40,10 +41,24 @@ $(GH-TOKEN-FILE):
 	@exit 1
 
 publish-secrets: $(GH) $(CLAUDE-CREDS-FILE) $(GH-TOKEN-FILE)
-	gh secret set CLAUDE_CREDENTIALS -R ingydotnet/ketchup < $(CLAUDE-CREDS-FILE)
-	gh secret set KETCHUP_TOKEN -R ingydotnet/ketchup < $(GH-TOKEN-FILE)
+	gh secret set CLAUDE_CREDENTIALS < $(CLAUDE-CREDS-FILE)
+	gh secret set KETCHUP_TOKEN < $(GH-TOKEN-FILE)
 
 run-gha: $(GH) publish-secrets
-	gh workflow run ketchup.yaml -R ingydotnet/ketchup
+	gh workflow run ketchup.yaml
+
+install-rsync:
+	@test -n "$(RELAY)" || { \
+	  echo 'Set RELAY=<ssh-alias for your relay host>' >&2; exit 1; }
+	mkdir -p $(SYSTEMD-USER-DIR)
+	sed -e 's|@CREDS_FILE@|$(CLAUDE-CREDS-FILE)|g' \
+	    etc/systemd/ketchup-rsync.path.in \
+	    > $(SYSTEMD-USER-DIR)/ketchup-rsync.path
+	sed -e 's|@CREDS_FILE@|$(CLAUDE-CREDS-FILE)|g' \
+	    -e 's|@RELAY_HOST@|$(RELAY)|g' \
+	    etc/systemd/ketchup-rsync.service.in \
+	    > $(SYSTEMD-USER-DIR)/ketchup-rsync.service
+	systemctl --user daemon-reload
+	systemctl --user enable --now ketchup-rsync.path
 
 claude: claude-nono
