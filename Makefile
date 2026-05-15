@@ -10,6 +10,7 @@ include $M/gh.mk
 include $M/jq.mk
 include $M/clean.mk
 include $M/ys.mk
+include $M/shellcheck.mk
 include $M/shell.mk
 
 GH-TOKEN-FILE := $(HOME)/.github-tokens/ketchup
@@ -41,6 +42,10 @@ $(GH-TOKEN-FILE):
 	@exit 1
 
 publish-secrets: $(GH) $(CLAUDE-CREDS-FILE) $(GH-TOKEN-FILE)
+	@test -s $(CLAUDE-CREDS-FILE) || { \
+	  echo 'Error: $(CLAUDE-CREDS-FILE) is empty.' >&2; \
+	  echo 'Run via pkio (so CLAUDE_CONFIG_DIR points at the real creds dir).' >&2; \
+	  exit 1; }
 	gh secret set CLAUDE_CREDENTIALS < $(CLAUDE-CREDS-FILE)
 	gh secret set KETCHUP_TOKEN < $(GH-TOKEN-FILE)
 
@@ -51,7 +56,7 @@ install-rsync:
 	@test -n "$(RELAY)" || { \
 	  echo 'Set RELAY=<ssh-alias for your relay host>' >&2; exit 1; }
 	mkdir -p $(SYSTEMD-USER-DIR)
-	sed -e 's|@CREDS_FILE@|$(CLAUDE-CREDS-FILE)|g' \
+	sed -e 's|@CREDS_DIR@|$(patsubst %/,%,$(dir $(CLAUDE-CREDS-FILE)))|g' \
 	    etc/systemd/ketchup-rsync.path.in \
 	    > $(SYSTEMD-USER-DIR)/ketchup-rsync.path
 	sed -e 's|@CREDS_FILE@|$(CLAUDE-CREDS-FILE)|g' \
@@ -60,5 +65,6 @@ install-rsync:
 	    > $(SYSTEMD-USER-DIR)/ketchup-rsync.service
 	systemctl --user daemon-reload
 	systemctl --user enable --now ketchup-rsync.path
+	systemctl --user restart ketchup-rsync.path
 
 claude: claude-nono

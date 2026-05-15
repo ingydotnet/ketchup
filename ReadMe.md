@@ -194,12 +194,22 @@ mkdir -p ~/.ketchup
 chmod +x ~/.ketchup/ketchup-publish.sh
 
 crontab -e
-# Add a daily push, scheduled at least an hour before your
-# GHA cron fires:
-# 0 1 * * * KETCHUP_REPO=<owner>/<repo> \
+# Add a daily push.
+# Cron fields are in the *relay's* local time, while the GHA
+# cron in .github/workflows/ketchup.yaml is UTC.
+# Convert both to UTC and ensure the relay's push lands at
+# least an hour or two before the GHA fires (GHA cron can lag).
+# Example: relay in PDT (UTC-7), GHA cron '0 7 * * *' = 07:00 UTC.
+# Relay cron '0 22 * * *' = 22:00 PDT = 05:00 UTC -> 2-hour buffer.
+# 0 22 * * * KETCHUP_REPO=<owner>/<repo> \
 #     $HOME/.ketchup/ketchup-publish.sh \
 #     >> $HOME/.ketchup/publish.log 2>&1
 ```
+
+`KETCHUP_REPO` must be exported in the cron line itself (or
+in the script).
+Cron starts with an empty environment, so a value set in your
+shell profile will not be visible.
 
 `KETCHUP_TOKEN` does not rotate, so it is pushed once from
 the laptop with `make publish-secrets` and forgotten.

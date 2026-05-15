@@ -1,8 +1,8 @@
 [Unit]
-Description=Watch Claude creds file and rsync to ketchup relay
+Description=Watch Claude creds dir and rsync to ketchup relay
 
 [Path]
-PathModified=@CREDS_FILE@
+PathChanged=@CREDS_DIR@
 Unit=ketchup-rsync.service
 
 [Install]
