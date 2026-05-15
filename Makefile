@@ -8,10 +8,19 @@ include $M/init.mk
 include $M/claude.mk
 include $M/gh.mk
 include $M/jq.mk
-include $M/clean.mk
-include $M/ys.mk
 include $M/shellcheck.mk
+include $M/ys.mk
 include $M/shell.mk
+include $M/clean.mk
+
+MAKES-CLEAN := \
+  www/docs/dates.json \
+  www/docs/reports/ \
+
+MAKES-REALCLEAN := \
+  www/hooks/__pycache__/ \
+  www/venv/ \
+
 
 GH-TOKEN-FILE := $(HOME)/.github-tokens/ketchup
 CLAUDE-CREDS-FILE := $(or $(CLAUDE_CONFIG_DIR),$(HOME)/.claude)/.credentials.json
@@ -68,3 +77,9 @@ install-rsync:
 	systemctl --user restart ketchup-rsync.path
 
 claude: claude-nono
+
+serve-www:
+	$(MAKE) -C www serve
+
+publish-www:
+	$(MAKE) -C www publish

@@ -1,0 +1,5 @@
+/* Tighten checkbox spacing in report task lists. */
+.md-content ul.task-list li.task-list-item {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}

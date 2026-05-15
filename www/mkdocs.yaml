@@ -1,0 +1,76 @@
+site_name: Ketchup
+site_description: Daily catch-up reports on Ingy's open source projects
+site_author: Ingy dot Net
+site_url: https://ingydotnet.github.io/ketchup/
+
+repo_name: ingydotnet/ketchup
+repo_url: https://github.com/ingydotnet/ketchup
+edit_uri: ""
+
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+  - navigation.instant
+  - navigation.tracking
+  - navigation.top
+  - navigation.footer
+  - search.suggest
+  - search.highlight
+  - content.code.copy
+  - toc.follow
+  palette:
+  - media: "(prefers-color-scheme: light)"
+    scheme: default
+    primary: red
+    accent: deep orange
+    toggle:
+      icon: material/brightness-7
+      name: Switch to dark mode
+  - media: "(prefers-color-scheme: dark)"
+    scheme: slate
+    primary: red
+    accent: deep orange
+    toggle:
+      icon: material/brightness-4
+      name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+- css/extra.css
+
+hooks:
+- hooks/build_reports.py
+
+markdown_extensions:
+- abbr
+- admonition
+- attr_list
+- def_list
+- md_in_html
+- toc:
+    permalink: true
+- pymdownx.betterem
+- pymdownx.magiclink:
+    repo_url_shorthand: true
+    user: ingydotnet
+    repo: ketchup
+- pymdownx.superfences
+- pymdownx.tasklist:
+    custom_checkbox: true
+    clickable_checkbox: false
+
+plugins:
+- search
+- awesome-pages
+
+extra:
+  social:
+  - icon: fontawesome/brands/github
+    link: https://github.com/ingydotnet/ketchup
+    name: Ketchup on GitHub
