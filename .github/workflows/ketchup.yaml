@@ -43,7 +43,7 @@ jobs:
           report=$(ls -1 report/*.md | tail -1)
           tmp=$(mktemp)
           {
-            echo '*Claude OAuth credentials rotated during this run. Log in to Claude locally and run `make publish-secrets` to refresh the stored secret.*'
+            echo '*Claude OAuth credentials rotated during this run.*'
             echo
             cat "$report"
           } > "$tmp"

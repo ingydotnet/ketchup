@@ -50,7 +50,7 @@ $(GH-TOKEN-FILE):
 	@echo 'and save it to $@'
 	@exit 1
 
-publish-secrets: $(GH) $(CLAUDE-CREDS-FILE) $(GH-TOKEN-FILE)
+push-secrets: $(GH) $(CLAUDE-CREDS-FILE) $(GH-TOKEN-FILE)
 	@test -s $(CLAUDE-CREDS-FILE) || { \
 	  echo 'Error: $(CLAUDE-CREDS-FILE) is empty.' >&2; \
 	  echo 'Run via pkio (so CLAUDE_CONFIG_DIR points at the real creds dir).' >&2; \
@@ -58,7 +58,7 @@ publish-secrets: $(GH) $(CLAUDE-CREDS-FILE) $(GH-TOKEN-FILE)
 	gh secret set CLAUDE_CREDENTIALS < $(CLAUDE-CREDS-FILE)
 	gh secret set KETCHUP_TOKEN < $(GH-TOKEN-FILE)
 
-run-gha: $(GH) publish-secrets
+run-gha: $(GH) push-secrets
 	gh workflow run ketchup.yaml
 
 install-rsync:
@@ -78,8 +78,5 @@ install-rsync:
 
 claude: claude-nono
 
-serve-www:
-	$(MAKE) -C www serve
-
-publish-www:
-	$(MAKE) -C www publish
+serve publish:
+	$(MAKE) -C www $@

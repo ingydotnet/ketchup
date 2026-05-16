@@ -118,11 +118,11 @@ Required secrets on the repo:
   every repo listed in `ketchup.yaml` and write access to the
   `contents` of this repo (so the workflow can push the report).
 
-`make publish-secrets` pushes both `CLAUDE_CREDENTIALS` and
+`make push-secrets` pushes both `CLAUDE_CREDENTIALS` and
 `KETCHUP_TOKEN` from local files in one shot.
 If a report ever appears with a top-of-file banner about
 rotated credentials, log in to Claude locally and re-run
-`make publish-secrets` to refresh the stored secret.
+`make push-secrets` to refresh the stored secret.
 
 You can trigger the workflow manually from the Actions tab via
 `workflow_dispatch`, or wait for the next scheduled run.
@@ -136,7 +136,7 @@ by the time the next scheduled run fires, unless something
 pushes a fresh copy in the meantime.
 
 The repo ships an optional two-step relay setup that
-removes the need to remember `make publish-secrets`:
+removes the need to remember `make push-secrets`:
 
 - Your laptop rsyncs the local creds file to an always-on
   host you control every time the file changes (each Claude
@@ -212,7 +212,7 @@ Cron starts with an empty environment, so a value set in your
 shell profile will not be visible.
 
 `KETCHUP_TOKEN` does not rotate, so it is pushed once from
-the laptop with `make publish-secrets` and forgotten.
+the laptop with `make push-secrets` and forgotten.
 
 ### Day-to-day
 
