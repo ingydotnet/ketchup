@@ -53,7 +53,7 @@ jobs:
           git push --force-with-lease
         fi
 
-  publish-www:
+  publish:
     needs: ketchup
     if: always() && needs.ketchup.result != 'cancelled'
     runs-on: ubuntu-latest
@@ -74,5 +74,5 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        make publish-www \
+        make publish \
           REPO="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
