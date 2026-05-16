@@ -39,15 +39,12 @@ jobs:
         before=$(sha256sum "$creds" | cut -d' ' -f1)
         make ketchup
         after=$(sha256sum "$creds" | cut -d' ' -f1)
-        if [[ $before != $after ]]; then
-          report=$(ls -1 report/*.md | tail -1)
-          tmp=$(mktemp)
+        if [[ $before != "$after" ]]; then
+          report=$(find report -maxdepth 1 -name '*.md' | sort | tail -1)
           {
-            echo '*Claude OAuth credentials rotated during this run.*'
             echo
-            cat "$report"
-          } > "$tmp"
-          mv "$tmp" "$report"
+            echo '*Claude OAuth credentials rotated during this run.*'
+          } >> "$report"
           git add "$report"
           git commit --amend --no-edit
           git push --force-with-lease

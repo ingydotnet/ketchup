@@ -11,6 +11,8 @@ docs_dir: docs
 
 theme:
   name: material
+  logo: assets/ketchup.png
+  favicon: assets/ketchup.png
   features:
   - navigation.instant
   - navigation.tracking
@@ -43,6 +45,9 @@ theme:
 
 extra_css:
 - css/extra.css
+
+extra_javascript:
+- javascripts/title-link.js
 
 hooks:
 - hooks/build_reports.py

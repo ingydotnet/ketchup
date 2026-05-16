@@ -38,7 +38,13 @@ def on_config(config, **kwargs):
 
     dates = sorted((s.stem for s in sources), reverse=True)
 
-    pages = ('nav:\n' + ''.join(f'- {d}.md\n' for d in dates)).encode('utf-8')
+    def _pretty(d: str) -> str:
+        return f'{d[0:4]}-{d[4:6]}-{d[6:8]}'
+
+    pages = (
+        'nav:\n'
+        + ''.join(f"- '{_pretty(d)}': {d}.md\n" for d in dates)
+    ).encode('utf-8')
     _write_if_changed(dst_reports / '.pages', pages)
 
     dates_json = (json.dumps(dates) + '\n').encode('utf-8')
