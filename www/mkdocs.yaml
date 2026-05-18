@@ -48,6 +48,7 @@ extra_css:
 
 extra_javascript:
 - javascripts/title-link.js
+- javascripts/external-links.js
 
 hooks:
 - hooks/build_reports.py
